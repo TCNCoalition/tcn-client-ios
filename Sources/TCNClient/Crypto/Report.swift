@@ -102,9 +102,9 @@ extension ReportAuthorizationKey {
         // Recompute tck_{j_1-1}. This requires recomputing j_1-1 hashes, but
         // creating reports is done infrequently and it means we don't force the
         // caller to have saved all intermediate hashes.
-        var temporaryContactKey = initialTemporaryContactKey
+        var temporaryContactKey = self.tck_0
         // initial_temporary_contact_key returns tck_1, so begin iteration at 1.
-        for _ in 1..<startIndex-1 {
+        for _ in 0..<startIndex-1 {
             temporaryContactKey = temporaryContactKey.ratchet()!
         }
         let report = Report(

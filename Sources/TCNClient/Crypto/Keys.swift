@@ -20,15 +20,20 @@ public struct ReportAuthorizationKey: Equatable {
     public var reportAuthorizationPrivateKey = Curve25519.Signing.PrivateKey()
     
     /// Compute the initial temporary contact key derived from this report authorization key.
+    ///
+    /// Note: this returns `tck_1`, the first temporary contact key that can be used to generate tcks.
     public var initialTemporaryContactKey: TemporaryContactKey {
-        // Immediately ratchet tck_0 to return tck_1.
-        let key = TemporaryContactKey(
+        return self.tck_0.ratchet()! // It's safe to unwrap.
+    }
+    
+    /// This is internal because tck_0 shouldn't be used to generate a TCN.
+    var tck_0: TemporaryContactKey {
+        return TemporaryContactKey(
             index: 0,
             reportVerificationPublicKeyBytes: reportAuthorizationPrivateKey
                 .publicKey.rawRepresentation,
             bytes: SHA256.hash(data: H_TCK_DOMAIN_SEPARATOR + reportAuthorizationPrivateKey.rawRepresentation).dataRepresentation
-        ).ratchet()! // It's safe to unwrap.
-        return key
+        )
     }
     
     public init(
