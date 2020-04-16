@@ -9,7 +9,7 @@ protocol TCNSerializable {
     
     init(serializedData: Data) throws
     
-    func serializedData() -> Data
+    func serializedData() throws -> Data
     
 }
 
@@ -26,19 +26,31 @@ extension Report: TCNSerializable {
         self.startIndex = try UInt16(dataRepresentation: serializedData[64..<66])
         self.endIndex = try UInt16(dataRepresentation: serializedData[66..<68])
         self.memoType = try MemoType(dataRepresentation: serializedData[68..<69])
-        self.memoData = serializedData[69..<serializedData.count]
+        // Notice, we skip reading the length and go straight reading the memo data.
+        self.memoData = serializedData[70..<serializedData.count]
         // Invariant: j_1 > 0
         guard self.startIndex > 0 else {
             throw TCNError.InvalidReportIndex
         }
     }
     
-    public func serializedData() -> Data {
-        return reportVerificationPublicKeyBytes +
-            temporaryContactKeyBytes +
-            startIndex.dataRepresentation +
-            endIndex.dataRepresentation +
-            memoType.dataRepresentation + memoData
+    public func serializedData() throws -> Data {
+        do {
+            let memoLength = UInt8(memoData.count)
+            guard Int(memoLength) == memoData.count else {
+                throw TCNError.OversizeMemo(memoData.count)                
+            }
+            return reportVerificationPublicKeyBytes +
+                temporaryContactKeyBytes +
+                startIndex.dataRepresentation +
+                endIndex.dataRepresentation +
+                memoType.dataRepresentation +
+                memoLength.dataRepresentation +
+            memoData
+        }
+        catch {
+            throw TCNError.OversizeMemo(memoData.count)
+        }
     }
     
 }
@@ -55,8 +67,8 @@ extension SignedReport: TCNSerializable {
         self.signatureBytes = serializedData[serializedData.count-64..<serializedData.count]
     }
     
-    public func serializedData() -> Data {
-        return report.serializedData() + signatureBytes
+    public func serializedData() throws -> Data {
+        return try report.serializedData() + signatureBytes
     }
 }
 

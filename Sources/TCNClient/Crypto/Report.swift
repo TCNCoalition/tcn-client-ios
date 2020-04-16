@@ -48,6 +48,9 @@ public struct Report: Equatable {
         self.temporaryContactKeyBytes = temporaryContactKeyBytes
         self.startIndex = startIndex
         self.endIndex = endIndex
+        if self.startIndex > self.endIndex {
+            self.startIndex = self.endIndex
+        }
         self.memoType = memoType
         self.memoData = memoData
     }
@@ -110,8 +113,7 @@ extension ReportAuthorizationKey {
         let report = Report(
             reportVerificationPublicKeyBytes: reportAuthorizationPrivateKey
                 .publicKey.rawRepresentation,
-            temporaryContactKeyBytes:
-            temporaryContactKey.bytes,
+            temporaryContactKeyBytes: temporaryContactKey.bytes,
             // Invariant: we have ensured j_1 > 0 above.
             startIndex: startIndex,
             endIndex: endIndex,
@@ -146,7 +148,7 @@ public struct SignedReport: Equatable {
             rawRepresentation: report.reportVerificationPublicKeyBytes
         )
         return publicKey.isValidSignature(
-            signatureBytes, for: report.serializedData()
+            signatureBytes, for: try report.serializedData()
         )
     }
 }
