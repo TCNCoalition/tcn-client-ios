@@ -3,9 +3,14 @@
 //  
 
 import Foundation
-import CryptoKit
+//#if canImport(CryptoKit)
+//import CryptoKit
+//#else
+import CryptoKit25519
+import CryptoSwift
+//#endif
 
-extension SHA256.Digest: DataRepresentable {}
+//extension SHA256.Digest: DataRepresentable {}
 extension UInt8: DataRepresentable {}
 extension UInt16: DataRepresentable {}
 extension MemoType: DataRepresentable {}
@@ -17,12 +22,17 @@ public let H_TCN_DOMAIN_SEPARATOR = "H_TCN".data(using: .utf8)!
 public struct ReportAuthorizationKey: Equatable {
     
     /// Initialize a new report authorization key from a random number generator.
-    public var reportAuthorizationPrivateKey = Curve25519.Signing.PrivateKey()
-    
+//    #if canImport(CryptoKit)
+//    public var reportAuthorizationPrivateKey = Curve25519.Signing.PrivateKey()
+//    #else
+    public var reportAuthorizationPrivateKey = try! Curve25519.Signing.PrivateKey()
+//    #endif
+        
     /// Compute the initial temporary contact key derived from this report authorization key.
     ///
     /// Note: this returns `tck_1`, the first temporary contact key that can be used to generate tcks.
     public var initialTemporaryContactKey: TemporaryContactKey {
+        
         return self.tck_0.ratchet()! // It's safe to unwrap.
     }
     
@@ -32,12 +42,13 @@ public struct ReportAuthorizationKey: Equatable {
             index: 0,
             reportVerificationPublicKeyBytes: reportAuthorizationPrivateKey
                 .publicKey.rawRepresentation,
-            bytes: SHA256.hash(data: H_TCK_DOMAIN_SEPARATOR + reportAuthorizationPrivateKey.rawRepresentation).dataRepresentation
+//            bytes: SHA256.hash(data: H_TCK_DOMAIN_SEPARATOR + reportAuthorizationPrivateKey.rawRepresentation).dataRepresentation
+            bytes: Data(Digest.sha256(Array(H_TCK_DOMAIN_SEPARATOR + reportAuthorizationPrivateKey.rawRepresentation)))
         )
     }
     
     public init(
-        reportAuthorizationPrivateKey: Curve25519.Signing.PrivateKey = .init()
+        reportAuthorizationPrivateKey: Curve25519.Signing.PrivateKey = try! .init()
     ) {
         self.reportAuthorizationPrivateKey = reportAuthorizationPrivateKey
     }
@@ -78,9 +89,10 @@ public struct TemporaryContactKey: Equatable {
     /// Compute the temporary contact number derived from this key.
     public var temporaryContactNumber: TemporaryContactNumber {
         return TemporaryContactNumber(
-            bytes: SHA256.hash(
-                data: H_TCN_DOMAIN_SEPARATOR + index.dataRepresentation + bytes
-            ).dataRepresentation[0..<16]
+//            bytes: SHA256.hash(
+//                data: H_TCN_DOMAIN_SEPARATOR + index.dataRepresentation + bytes
+//            ).dataRepresentation[0..<16]
+            bytes: Data(Digest.sha256(Array(H_TCN_DOMAIN_SEPARATOR + index.dataRepresentation + bytes)))[0..<16]
         )
     }
     
@@ -100,10 +112,13 @@ public struct TemporaryContactKey: Equatable {
         guard index < .max else {
             return nil
         }
-        
-        let nextBytes = SHA256.hash(
-            data: H_TCK_DOMAIN_SEPARATOR + reportVerificationPublicKeyBytes + bytes
-        ).dataRepresentation
+//        if #available(iOS 13.0, *) {
+//            let nextBytes = SHA256.hash(
+//                data: H_TCK_DOMAIN_SEPARATOR + reportVerificationPublicKeyBytes + bytes
+//            ).dataRepresentation
+//        }
+//        else {
+            let nextBytes = Data(Digest.sha256(Array(H_TCK_DOMAIN_SEPARATOR + reportVerificationPublicKeyBytes + bytes)))
         
         return TemporaryContactKey(
             index: index + 1,

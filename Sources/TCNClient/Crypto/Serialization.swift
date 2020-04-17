@@ -3,7 +3,8 @@
 //  
 
 import Foundation
-import CryptoKit
+//import CryptoKit
+import CryptoKit25519
 
 protocol TCNSerializable {
     

@@ -3,7 +3,9 @@
 //  
 
 import Foundation
-import CryptoKit
+
+//import CryptoKit
+import CryptoKit25519
 
 /// Describes the intended type of the contents of a memo field.
 public enum MemoType: UInt8 {
