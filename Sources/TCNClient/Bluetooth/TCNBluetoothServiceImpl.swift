@@ -58,6 +58,8 @@ class TCNBluetoothServiceImpl: NSObject {
         }
     }
     
+    private var shortTemporaryIdentifiersOfPeripheralsToWhichWeDidWriteTCNTo = Set<Data>()
+    
     private var connectingConnectedPeripheralIdentifiers: Set<UUID> {
         self.connectingPeripheralIdentifiers.union(
             self.connectedPeripheralIdentifiers
@@ -266,6 +268,7 @@ class TCNBluetoothServiceImpl: NSObject {
         self.characteristicsBeingWritten.removeAll()
         self.peripheralsToReadTCNFrom.removeAll()
         self.peripheralsToWriteTCNTo.removeAll()
+        self.shortTemporaryIdentifiersOfPeripheralsToWhichWeDidWriteTCNTo.removeAll()
         if self.centralManager?.isScanning ?? false {
             self.centralManager?.stopScan()
         }
@@ -544,16 +547,27 @@ extension TCNBluetoothServiceImpl: CBCentralManagerDelegate {
                 // assist at distance estimation) and a temporary 2-byte
                 // identifier (to avoid constant TCN write operations from iOS
                 // to Android in the bridging case described in the protocol).
-                let tcn = serviceData
+                guard serviceData.count == 16 + 4 else {
+                    return
+                }
                 
+                let tcn = Data(serviceData[0..<16])
                 self.didFindTCN(tcn)
                 
+                let shortTemporaryIdentifier = Data(serviceData[16..<20])
+                                
                 // The remote device is an Android one. Write a TCN to it,
                 // because it can not find the TCN of this iOS device while this
                 // iOS device is in the background, which is most of the time.
-                if isConnectable {
+                // But only write if we haven't already.
+                if isConnectable && !self.shortTemporaryIdentifiersOfPeripheralsToWhichWeDidWriteTCNTo.contains(shortTemporaryIdentifier)  {
                     self.peripheralsToWriteTCNTo.insert(peripheral)
                     self.connectPeripheralsIfNeeded()
+                    if self.shortTemporaryIdentifiersOfPeripheralsToWhichWeDidWriteTCNTo.count > 65536 {
+                        // Ensure our list doesn't grow too much...
+                        self.shortTemporaryIdentifiersOfPeripheralsToWhichWeDidWriteTCNTo.removeFirst()
+                    }
+                    self.shortTemporaryIdentifiersOfPeripheralsToWhichWeDidWriteTCNTo.insert(shortTemporaryIdentifier)
                 }
             }
             else {

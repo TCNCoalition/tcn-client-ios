@@ -30,7 +30,8 @@ extension DataRepresentable {
     
     public var dataRepresentation: Data {
         var value = self
-        // TODO: Fix compiler warning.
-        return Data(buffer: UnsafeBufferPointer(start: &value, count: 1))
+        return withUnsafePointer(to: &value) {
+            return Data(buffer: UnsafeBufferPointer(start: $0, count: 1))
+        }
     }
 }
