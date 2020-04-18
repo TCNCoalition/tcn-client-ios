@@ -74,6 +74,10 @@ class TCNBluetoothServiceImpl: NSObject {
     
     private var peripheralManager: CBPeripheralManager?
     
+    private var tcnsForRemoteDeviceIdentifiers = [UUID : Data]()
+    
+    private var estimatedDistancesForRemoteDeviceIdentifiers = [UUID : Double]()
+    
     private var peripheralsToReadTCNFrom = Set<CBPeripheral>()
     
     private var peripheralsToWriteTCNTo = Set<CBPeripheral>()
@@ -269,6 +273,8 @@ class TCNBluetoothServiceImpl: NSObject {
         self.peripheralsToReadTCNFrom.removeAll()
         self.peripheralsToWriteTCNTo.removeAll()
         self.shortTemporaryIdentifiersOfPeripheralsToWhichWeDidWriteTCNTo.removeAll()
+        self.tcnsForRemoteDeviceIdentifiers.removeAll()
+        self.estimatedDistancesForRemoteDeviceIdentifiers.removeAll()
         if self.centralManager?.isScanning ?? false {
             self.centralManager?.stopScan()
         }
@@ -367,6 +373,8 @@ class TCNBluetoothServiceImpl: NSObject {
     private func flushPeripheral(_ peripheral: CBPeripheral) {
         self.peripheralsToReadTCNFrom.remove(peripheral)
         self.peripheralsToWriteTCNTo.remove(peripheral)
+        self.tcnsForRemoteDeviceIdentifiers[peripheral.identifier] = nil
+        self.estimatedDistancesForRemoteDeviceIdentifiers[peripheral.identifier] = nil
         self.discoveredPeripherals.remove(peripheral)
         self.cancelConnectionIfNeeded(for: peripheral)
     }
@@ -486,10 +494,6 @@ extension TCNBluetoothServiceImpl: CBCentralManagerDelegate {
         advertisementData: [String : Any],
         rssi RSSI: NSNumber
     ) {
-        let isNewlyDiscovered = !self.discoveredPeripherals.contains(where: ({
-            $0.identifier == peripheral.identifier })
-        )
-        
         // Only Android can enable advertising data in the service data field.
         let isAndroid = ((advertisementData[CBAdvertisementDataServiceDataKey]
             as? [CBUUID : Data])?[.tcnService] != nil)
@@ -501,39 +505,41 @@ extension TCNBluetoothServiceImpl: CBCentralManagerDelegate {
                 hintIsAndroid: isAndroid
             )
         )
+        self.estimatedDistancesForRemoteDeviceIdentifiers[
+            peripheral.identifier] = estimatedDistanceMeters
         
-        //        if #available(OSX 10.12, iOS 10.0, tvOS 10.0, watchOS 3.0, *) {
-        //            os_log(
-        //                "Central manager did discover peripheral (new=%d uuid=%@ name='%@') RSSI=%d (estimatedDistance=%.2f)",
-        //                log: .bluetooth,
-        //                isNewlyDiscovered,
-        //                peripheral.identifier.description,
-        //                peripheral.name ?? "",
-        //                RSSI.intValue,
-        //                estimatedDistanceMeters
-        //            )
-        //        }
+//        if #available(OSX 10.12, iOS 10.0, tvOS 10.0, watchOS 3.0, *) {
+//            os_log(
+//                "Central manager did discover peripheral (uuid=%@ new=%d name='%@') RSSI=%d (estimatedDistance=%.2f)",
+//                log: .bluetooth,
+//                peripheral.identifier.description,
+//                !self.discoveredPeripherals.contains(peripheral),
+//                peripheral.name ?? "",
+//                RSSI.intValue,
+//                estimatedDistanceMeters
+//            )
+//        }
         
-        // TODO: Currently we find a TCN from every newly discovered device.
-        // However, the goal is to find TCNs only from devices within
-        // 3 meters for 15 minutes or more. Add this functionality.
-        if isNewlyDiscovered {
-            
-            if #available(OSX 10.12, iOS 10.0, tvOS 10.0, watchOS 3.0, *) {
-                os_log(
-                    "Central manager did discover peripheral (new=%d uuid=%@ name='%@') RSSI=%d (estimatedDistance=%.2f) advertisementData=%@",
-                    log: .bluetooth,
-                    isNewlyDiscovered,
-                    peripheral.identifier.description,
-                    peripheral.name ?? "",
-                    RSSI.intValue,
-                    estimatedDistanceMeters,
-                    advertisementData.description
-                )
-            }
-            
-            self.discoveredPeripherals.insert(peripheral)
-            
+//        if #available(OSX 10.12, iOS 10.0, tvOS 10.0, watchOS 3.0, *) {
+//            os_log(
+//                "Central manager did discover peripheral (uuid=%@ new=%d name='%@') RSSI=%d (estimatedDistance=%.2f) advertisementData=%@",
+//                log: .bluetooth,
+//                peripheral.identifier.description,
+//                !self.discoveredPeripherals.contains(peripheral),
+//                peripheral.name ?? "",
+//                RSSI.intValue,
+//                estimatedDistanceMeters,
+//                advertisementData.description
+//            )
+//        }
+        
+        self.discoveredPeripherals.insert(peripheral)
+        
+        // Did we find a TCN from the peripheral already?
+        if let tcn = self.tcnsForRemoteDeviceIdentifiers[peripheral.identifier] {
+            self.didFindTCN(tcn, estimatedDistance: self.estimatedDistancesForRemoteDeviceIdentifiers[peripheral.identifier])
+        }
+        else {
             let isConnectable = (advertisementData[
                 CBAdvertisementDataIsConnectable] as? NSNumber)?.boolValue ?? false
             
@@ -542,32 +548,33 @@ extension TCNBluetoothServiceImpl: CBCentralManagerDelegate {
                 as? [CBUUID : Data],
                 let serviceData = advertisementDataServiceData[.tcnService] {
                 
-                // TODO: Service data might not be equal to TCN. Currently it is.
-                // It may contain the 1-byte model of the remote device (to
-                // assist at distance estimation) and a temporary 2-byte
-                // identifier (to avoid constant TCN write operations from iOS
-                // to Android in the bridging case described in the protocol).
-                guard serviceData.count == 16 + 4 else {
+                // The service data = bridged TCN + first 4 bytes of the current TCN.
+                // When the Android bridges a TCN of nearby iOS devices, the
+                // last 4 bytes are different than the first 4 bytes.
+                guard serviceData.count >= 16 else {
                     return
                 }
                 
                 let tcn = Data(serviceData[0..<16])
-                self.didFindTCN(tcn)
+                self.tcnsForRemoteDeviceIdentifiers[peripheral.identifier] = tcn
+                self.didFindTCN(tcn, estimatedDistance: self.estimatedDistancesForRemoteDeviceIdentifiers[peripheral.identifier])
                 
-                let shortTemporaryIdentifier = Data(serviceData[16..<20])
-                                
-                // The remote device is an Android one. Write a TCN to it,
-                // because it can not find the TCN of this iOS device while this
-                // iOS device is in the background, which is most of the time.
-                // But only write if we haven't already.
-                if isConnectable && !self.shortTemporaryIdentifiersOfPeripheralsToWhichWeDidWriteTCNTo.contains(shortTemporaryIdentifier)  {
-                    self.peripheralsToWriteTCNTo.insert(peripheral)
-                    self.connectPeripheralsIfNeeded()
-                    if self.shortTemporaryIdentifiersOfPeripheralsToWhichWeDidWriteTCNTo.count > 65536 {
-                        // Ensure our list doesn't grow too much...
-                        self.shortTemporaryIdentifiersOfPeripheralsToWhichWeDidWriteTCNTo.removeFirst()
+                if serviceData.count == 16 + 4 {
+                    let shortTemporaryIdentifier = Data(serviceData[16..<20])
+                                    
+                    // The remote device is an Android one. Write a TCN to it,
+                    // because it can not find the TCN of this iOS device while this
+                    // iOS device is in the background, which is most of the time.
+                    // But only write if we haven't already.
+                    if isConnectable && !self.shortTemporaryIdentifiersOfPeripheralsToWhichWeDidWriteTCNTo.contains(shortTemporaryIdentifier)  {
+                        self.peripheralsToWriteTCNTo.insert(peripheral)
+                        self.connectPeripheralsIfNeeded()
+                        if self.shortTemporaryIdentifiersOfPeripheralsToWhichWeDidWriteTCNTo.count > 65536 {
+                            // Ensure our list doesn't grow too much...
+                            self.shortTemporaryIdentifiersOfPeripheralsToWhichWeDidWriteTCNTo.removeFirst()
+                        }
+                        self.shortTemporaryIdentifiersOfPeripheralsToWhichWeDidWriteTCNTo.insert(shortTemporaryIdentifier)
                     }
-                    self.shortTemporaryIdentifiersOfPeripheralsToWhichWeDidWriteTCNTo.insert(shortTemporaryIdentifier)
                 }
             }
             else {
@@ -826,8 +833,6 @@ extension TCNBluetoothServiceImpl: CBPeripheralDelegate {
                 error: nil
             )
         }
-        self.peripheralsToReadTCNFrom.remove(peripheral)
-        self.peripheralsToWriteTCNTo.remove(peripheral)
     }
     
     func _peripheral(
@@ -933,7 +938,8 @@ extension TCNBluetoothServiceImpl: CBPeripheralDelegate {
                 throw CBATTError(.invalidPdu)
             }
             let tcn = value
-            self.didFindTCN(tcn)
+            self.tcnsForRemoteDeviceIdentifiers[peripheral.identifier] = tcn
+            self.didFindTCN(tcn, estimatedDistance: self.estimatedDistancesForRemoteDeviceIdentifiers[peripheral.identifier])
         }
         catch {
             if #available(OSX 10.12, iOS 10.0, tvOS 10.0, watchOS 3.0, *) {
@@ -948,6 +954,7 @@ extension TCNBluetoothServiceImpl: CBPeripheralDelegate {
         let allCharacteristics = peripheral.characteristics(with: .tcnCharacteristic)
         if self.characteristicsBeingRead
             .intersection(allCharacteristics).isEmpty {
+            self.peripheralsToReadTCNFrom.remove(peripheral)
             self.cancelConnectionIfNeeded(for: peripheral)
         }
     }
@@ -987,6 +994,7 @@ extension TCNBluetoothServiceImpl: CBPeripheralDelegate {
         let allCharacteristics = peripheral.characteristics(with: .tcnCharacteristic)
         if self.characteristicsBeingWritten
             .intersection(allCharacteristics).isEmpty {
+            self.peripheralsToWriteTCNTo.remove(peripheral)
             self.cancelConnectionIfNeeded(for: peripheral)
         }
     }
@@ -1187,8 +1195,8 @@ extension TCNBluetoothServiceImpl: CBPeripheralManagerDelegate {
                 guard let value = request.value else {
                     throw CBATTError(.invalidPdu)
                 }
-                
-                self.didFindTCN(value)
+                self.tcnsForRemoteDeviceIdentifiers[request.central.identifier] = value
+                self.didFindTCN(value, estimatedDistance: self.estimatedDistancesForRemoteDeviceIdentifiers[request.central.identifier])
             }
             catch {
                 var result = CBATTError.invalidPdu
