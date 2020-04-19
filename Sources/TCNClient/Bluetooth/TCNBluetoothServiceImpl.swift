@@ -934,10 +934,10 @@ extension TCNBluetoothServiceImpl: CBPeripheralDelegate {
             guard error == nil else {
                 return
             }
-            guard let value = characteristic.value else {
+            guard let value = characteristic.value, value.count >= 16 else {
                 throw CBATTError(.invalidPdu)
             }
-            let tcn = value
+            let tcn = Data(value[0..<16])
             self.tcnsForRemoteDeviceIdentifiers[peripheral.identifier] = tcn
             self.didFindTCN(tcn, estimatedDistance: self.estimatedDistancesForRemoteDeviceIdentifiers[peripheral.identifier])
         }
@@ -1192,11 +1192,12 @@ extension TCNBluetoothServiceImpl: CBPeripheralManagerDelegate {
                 guard request.characteristic.uuid == .tcnCharacteristic else {
                     throw CBATTError(.requestNotSupported)
                 }
-                guard let value = request.value else {
+                guard let value = request.value, value.count >= 16 else {
                     throw CBATTError(.invalidPdu)
                 }
-                self.tcnsForRemoteDeviceIdentifiers[request.central.identifier] = value
-                self.didFindTCN(value, estimatedDistance: self.estimatedDistancesForRemoteDeviceIdentifiers[request.central.identifier])
+                let tcn = Data(value[0..<16])
+                self.tcnsForRemoteDeviceIdentifiers[request.central.identifier] = tcn
+                self.didFindTCN(tcn, estimatedDistance: self.estimatedDistancesForRemoteDeviceIdentifiers[request.central.identifier])
             }
             catch {
                 var result = CBATTError.invalidPdu
