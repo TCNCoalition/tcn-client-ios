@@ -11,7 +11,7 @@ public class TCNBluetoothService: NSObject {
     public var tcnGenerator: () -> Data
     
     /// The block that is called whenever the service finds a TCN.
-    public var tcnFinder: (Data) -> Void
+    public var tcnFinder: (Data, Double?) -> Void
     
     /// The block that is called whenever a critical error occurs, like no permission to access Bluetooth.
     public var errorHandler: (Error) -> Void
@@ -20,7 +20,7 @@ public class TCNBluetoothService: NSObject {
     
     public init(
         tcnGenerator: @escaping () -> Data,
-        tcnFinder: @escaping (Data) -> Void,
+        tcnFinder: @escaping (Data, Double?) -> Void,
         errorHandler: @escaping (Error) -> Void
     ) {
         self.tcnGenerator = tcnGenerator
