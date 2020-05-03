@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "CCurve25519",
+        "repositoryURL": "https://github.com/christophhagen/CCurve25519.git",
+        "state": {
+          "branch": null,
+          "revision": "f27fa9a2cf0c61a3cb9d9a03b3d3d801ccc64b32",
+          "version": "1.0.4"
+        }
+      }
+    ]
+  },
+  "version": 1
+}

@@ -3,8 +3,12 @@
 //  
 
 import Foundation
+#if canImport(CryptoKit)
 import CryptoKit
+#endif
+import CommonCrypto
 
+@available(iOS 13.0, *)
 extension SHA256.Digest: DataRepresentable {}
 extension UInt8: DataRepresentable {}
 extension UInt16: DataRepresentable {}
@@ -17,7 +21,7 @@ public let H_TCN_DOMAIN_SEPARATOR = "H_TCN".data(using: .utf8)!
 public struct ReportAuthorizationKey: Equatable {
     
     /// Initialize a new report authorization key from a random number generator.
-    public var reportAuthorizationPrivateKey = Curve25519.Signing.PrivateKey()
+    public var reportAuthorizationPrivateKey = Curve25519PrivateKey()
     
     /// Compute the initial temporary contact key derived from this report authorization key.
     ///
@@ -32,12 +36,12 @@ public struct ReportAuthorizationKey: Equatable {
             index: 0,
             reportVerificationPublicKeyBytes: reportAuthorizationPrivateKey
                 .publicKey.rawRepresentation,
-            bytes: SHA256.hash(data: H_TCK_DOMAIN_SEPARATOR + reportAuthorizationPrivateKey.rawRepresentation).dataRepresentation
+            bytes: (H_TCK_DOMAIN_SEPARATOR + reportAuthorizationPrivateKey.rawRepresentation).sha256Hash()
         )
     }
     
     public init(
-        reportAuthorizationPrivateKey: Curve25519.Signing.PrivateKey = .init()
+        reportAuthorizationPrivateKey: Curve25519PrivateKey = .init()
     ) {
         self.reportAuthorizationPrivateKey = reportAuthorizationPrivateKey
     }
@@ -49,6 +53,28 @@ public struct ReportAuthorizationKey: Equatable {
         return lhs.reportAuthorizationPrivateKey.rawRepresentation == rhs.reportAuthorizationPrivateKey.rawRepresentation
     }
     
+}
+
+extension Data {
+    
+    func sha256Hash() -> Data {
+        if #available(iOS 13.0, *) {
+            let data =  SHA256.hash(data: self).dataRepresentation
+            return data
+        } else {
+            return (self as NSData).sha256Digest() as Data
+        }
+    }
+}
+extension NSData {
+    
+    public func sha256Digest() -> NSData {
+        let input: NSData = self
+        let digestLength = Int(CC_SHA256_DIGEST_LENGTH)
+        var hash = [UInt8](repeating: 0, count: digestLength)
+        CC_SHA256(input.bytes, UInt32(input.length), &hash)
+        return NSData(bytes: hash, length: digestLength)
+    }
 }
 
 /// A pseudorandom 128-bit value broadcast to nearby devices over Bluetooth.
@@ -78,9 +104,8 @@ public struct TemporaryContactKey: Equatable {
     /// Compute the temporary contact number derived from this key.
     public var temporaryContactNumber: TemporaryContactNumber {
         return TemporaryContactNumber(
-            bytes: SHA256.hash(
-                data: H_TCN_DOMAIN_SEPARATOR + index.dataRepresentation + bytes
-            ).dataRepresentation[0..<16]
+            bytes: (H_TCN_DOMAIN_SEPARATOR + index.dataRepresentation + bytes)
+                .sha256Hash()[0..<16]
         )
     }
     
@@ -101,10 +126,7 @@ public struct TemporaryContactKey: Equatable {
             return nil
         }
         
-        let nextBytes = SHA256.hash(
-            data: H_TCK_DOMAIN_SEPARATOR + reportVerificationPublicKeyBytes + bytes
-        ).dataRepresentation
-        
+        let nextBytes = (H_TCK_DOMAIN_SEPARATOR + reportVerificationPublicKeyBytes + bytes).sha256Hash()
         return TemporaryContactKey(
             index: index + 1,
             reportVerificationPublicKeyBytes: reportVerificationPublicKeyBytes,

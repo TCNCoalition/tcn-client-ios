@@ -3,7 +3,6 @@
 //  
 
 import Foundation
-import CryptoKit
 
 /// Describes the intended type of the contents of a memo field.
 public enum MemoType: UInt8 {
@@ -144,7 +143,7 @@ public struct SignedReport: Equatable {
     
     /// Verify the source integrity of the contained `report`.
     public func verify() throws -> Bool {
-        let publicKey = try Curve25519.Signing.PublicKey(
+        let publicKey = try Curve25519PublicKey(
             rawRepresentation: report.reportVerificationPublicKeyBytes
         )
         return publicKey.isValidSignature(

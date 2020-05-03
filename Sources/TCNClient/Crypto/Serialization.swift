@@ -3,7 +3,6 @@
 //  
 
 import Foundation
-import CryptoKit
 
 protocol TCNSerializable {
     
@@ -95,7 +94,7 @@ extension ReportAuthorizationKey: TCNSerializable {
         guard serializedData.count == 32 else {
             throw CocoaError(.coderInvalidValue)
         }
-        self.reportAuthorizationPrivateKey = try Curve25519.Signing.PrivateKey(
+        self.reportAuthorizationPrivateKey = try Curve25519PrivateKey(
             rawRepresentation: serializedData
         )
     }
