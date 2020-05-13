@@ -6,7 +6,9 @@
 //
 
 import Foundation
+#if canImport(CryptoKit)
 import CryptoKit
+#endif
 import CCurve25519
 
 public struct Curve25519PublicKey {
@@ -15,7 +17,7 @@ public struct Curve25519PublicKey {
     
     /// A data representation of the private key
     public var rawRepresentation: Data {
-        if #available(iOS 13.0, *) {
+        if #available(iOS 13.2, *) {
             if let key = key as? Curve25519.Signing.PublicKey {
                 return key.rawRepresentation
             }
@@ -29,7 +31,7 @@ public struct Curve25519PublicKey {
     }
     
     public init<D>(rawRepresentation: D) throws where D : ContiguousBytes {
-        if #available(iOS 13.0, *) {
+        if #available(iOS 13.2, *) {
             key = try Curve25519.Signing.PublicKey(rawRepresentation: rawRepresentation)
             return
         }
@@ -43,7 +45,7 @@ public struct Curve25519PublicKey {
     ///   - data: The digest that was signed.
     /// - Returns: True if the signature is valid. False otherwise.
     public func isValidSignature<S, D>(_ signature: S, for data: D) -> Bool where S : DataProtocol, D : DataProtocol {
-        if #available(iOS 13.0, *) {
+        if #available(iOS 13.2, *) {
             if let key = key as? Curve25519.Signing.PublicKey {
                 return key.isValidSignature(signature, for: data)
             }

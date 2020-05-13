@@ -6,7 +6,9 @@
 //
 
 import Foundation
+#if canImport(CryptoKit)
 import CryptoKit
+#endif
 import CCurve25519
 
 public struct Curve25519KeyLength {
@@ -45,7 +47,7 @@ public struct Curve25519PrivateKey {
     
     /// Generates a Curve25519 Signing Key.
     public init() {
-        if #available(iOS 13.0, *) {
+        if #available(iOS 13.2, *) {
             self.key = Curve25519.Signing.PrivateKey()
         } else {
             self.key = Curve25519PrivateKey.generateRandomData(count: Curve25519KeyLength.key)!
@@ -54,7 +56,7 @@ public struct Curve25519PrivateKey {
     }
     
     public init<D>(rawRepresentation data: D) throws where D : ContiguousBytes {
-        if #available(iOS 13.0, *) {
+        if #available(iOS 13.2, *) {
             self.key = try Curve25519.Signing.PrivateKey(rawRepresentation: data)
         }
         else {
@@ -65,7 +67,7 @@ public struct Curve25519PrivateKey {
     
     // Initialize related public key
     private mutating func initPublicKey() throws {
-        if #available(iOS 13.0, *) {
+        if #available(iOS 13.2, *) {
             if let key = key as? Curve25519.Signing.PrivateKey {
                 publicKey = Curve25519PublicKey(publicKey: key.publicKey)
                 return
@@ -76,7 +78,7 @@ public struct Curve25519PrivateKey {
     
     /// A data representation of the private key
     public var rawRepresentation: Data {
-        if #available(iOS 13.0, *) {
+        if #available(iOS 13.2, *) {
             if let key = key as? Curve25519.Signing.PrivateKey {
                 return key.rawRepresentation
             }
@@ -90,7 +92,7 @@ public struct Curve25519PrivateKey {
     /// - Returns: The 64-bytes signature.
     /// - Throws: If there is a failure producing the signature.
     public func signature<D>(for data: D) throws -> Data where D : DataProtocol {
-        if #available(iOS 13.0, *) {
+        if #available(iOS 13.2, *) {
             if let key = key as? Curve25519.Signing.PrivateKey {
                 return try key.signature(for: data)
             }

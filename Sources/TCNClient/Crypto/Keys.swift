@@ -3,7 +3,9 @@
 //  
 
 import Foundation
+#if canImport(CryptoKit)
 import CryptoKit
+#endif
 import CommonCrypto
 
 @available(iOS 13.0, *)
@@ -56,7 +58,7 @@ public struct ReportAuthorizationKey: Equatable {
 extension Data {
     
     func sha256Hash() -> Data {
-        if #available(iOS 13.0, *) {
+        if #available(iOS 13.2, *) {
             let data =  SHA256.hash(data: self).dataRepresentation
             return data
         } else {
