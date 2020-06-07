@@ -3,9 +3,7 @@
 //  
 
 import Foundation
-#if canImport(CryptoKit)
 import CryptoKit
-#endif
 import CommonCrypto
 
 @available(iOS 13.0, *)

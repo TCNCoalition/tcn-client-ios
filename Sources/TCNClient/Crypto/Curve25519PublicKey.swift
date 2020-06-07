@@ -6,9 +6,7 @@
 //
 
 import Foundation
-#if canImport(CryptoKit)
 import CryptoKit
-#endif
 import CCurve25519
 
 public struct Curve25519PublicKey {
