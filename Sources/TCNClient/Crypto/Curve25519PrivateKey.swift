@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import CryptoKit
+//import CryptoKit
 import CCurve25519
 
 public struct Curve25519KeyLength {
@@ -45,42 +45,42 @@ public struct Curve25519PrivateKey {
     
     /// Generates a Curve25519 Signing Key.
     public init() {
-        if #available(iOS 13.2, *) {
-            self.key = Curve25519.Signing.PrivateKey()
-        } else {
+//        if #available(iOS 13.2, *) {
+//            self.key = Curve25519.Signing.PrivateKey()
+//        } else {
             self.key = Curve25519PrivateKey.generateRandomData(count: Curve25519KeyLength.key)!
-        }
+//        }
         try! initPublicKey()
     }
     
     public init<D>(rawRepresentation data: D) throws where D : ContiguousBytes {
-        if #available(iOS 13.2, *) {
-            self.key = try Curve25519.Signing.PrivateKey(rawRepresentation: data)
-        }
-        else {
+//        if #available(iOS 13.2, *) {
+//            self.key = try Curve25519.Signing.PrivateKey(rawRepresentation: data)
+//        }
+//        else {
             self.key = data
-        }
+//        }
         try initPublicKey()
     }
     
     // Initialize related public key
     private mutating func initPublicKey() throws {
-        if #available(iOS 13.2, *) {
-            if let key = key as? Curve25519.Signing.PrivateKey {
-                publicKey = Curve25519PublicKey(publicKey: key.publicKey)
-                return
-            }
-        }
+//        if #available(iOS 13.2, *) {
+//            if let key = key as? Curve25519.Signing.PrivateKey {
+//                publicKey = Curve25519PublicKey(publicKey: key.publicKey)
+//                return
+//            }
+//        }
         publicKey = try Curve25519PublicKey(rawRepresentation: Curve25519PrivateKey.generatePublicKey(privateKey: key as! Data))
     }
     
     /// A data representation of the private key
     public var rawRepresentation: Data {
-        if #available(iOS 13.2, *) {
-            if let key = key as? Curve25519.Signing.PrivateKey {
-                return key.rawRepresentation
-            }
-        }
+//        if #available(iOS 13.2, *) {
+//            if let key = key as? Curve25519.Signing.PrivateKey {
+//                return key.rawRepresentation
+//            }
+//        }
         return key as! Data
     }
     
@@ -90,11 +90,11 @@ public struct Curve25519PrivateKey {
     /// - Returns: The 64-bytes signature.
     /// - Throws: If there is a failure producing the signature.
     public func signature<D>(for data: D) throws -> Data where D : DataProtocol {
-        if #available(iOS 13.2, *) {
-            if let key = key as? Curve25519.Signing.PrivateKey {
-                return try key.signature(for: data)
-            }
-        }
+//        if #available(iOS 13.2, *) {
+//            if let key = key as? Curve25519.Signing.PrivateKey {
+//                return try key.signature(for: data)
+//            }
+//        }
         return try Curve25519PrivateKey.signature(for: data as! Data, privateKey: key as! Data, randomData: Curve25519PrivateKey.generateRandomData(count: Curve25519KeyLength.random)!)
     }
     

@@ -3,11 +3,11 @@
 //  
 
 import Foundation
-import CryptoKit
+//import CryptoKit
 import CommonCrypto
 
-@available(iOS 13.0, *)
-extension SHA256.Digest: DataRepresentable {}
+//@available(iOS 13.0, *)
+//extension SHA256.Digest: DataRepresentable {}
 extension UInt8: DataRepresentable {}
 extension UInt16: DataRepresentable {}
 extension MemoType: DataRepresentable {}
@@ -56,12 +56,12 @@ public struct ReportAuthorizationKey: Equatable {
 extension Data {
     
     func sha256Hash() -> Data {
-        if #available(iOS 13.2, *) {
-            let data =  SHA256.hash(data: self).dataRepresentation
-            return data
-        } else {
+//        if #available(iOS 13.2, *) {
+//            let data =  SHA256.hash(data: self).dataRepresentation
+//            return data
+//        } else {
             return (self as NSData).sha256Digest() as Data
-        }
+//        }
     }
 }
 extension NSData {

@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import CryptoKit
+//import CryptoKit
 import CCurve25519
 
 public struct Curve25519PublicKey {
@@ -15,24 +15,24 @@ public struct Curve25519PublicKey {
     
     /// A data representation of the private key
     public var rawRepresentation: Data {
-        if #available(iOS 13.2, *) {
-            if let key = key as? Curve25519.Signing.PublicKey {
-                return key.rawRepresentation
-            }
-        }
+//        if #available(iOS 13.2, *) {
+//            if let key = key as? Curve25519.Signing.PublicKey {
+//                return key.rawRepresentation
+//            }
+//        }
         return key as! Data
     }
-    
-    @available(iOS 13.0, *)
-    public init(publicKey: Curve25519.Signing.PublicKey) {
-        key = publicKey
-    }
+//    
+//    @available(iOS 13.0, *)
+//    public init(publicKey: Curve25519.Signing.PublicKey) {
+//        key = publicKey
+//    }
     
     public init<D>(rawRepresentation: D) throws where D : ContiguousBytes {
-        if #available(iOS 13.2, *) {
-            key = try Curve25519.Signing.PublicKey(rawRepresentation: rawRepresentation)
-            return
-        }
+//        if #available(iOS 13.2, *) {
+//            key = try Curve25519.Signing.PublicKey(rawRepresentation: rawRepresentation)
+//            return
+//        }
         key = rawRepresentation
     }
     
@@ -43,11 +43,11 @@ public struct Curve25519PublicKey {
     ///   - data: The digest that was signed.
     /// - Returns: True if the signature is valid. False otherwise.
     public func isValidSignature<S, D>(_ signature: S, for data: D) -> Bool where S : DataProtocol, D : DataProtocol {
-        if #available(iOS 13.2, *) {
-            if let key = key as? Curve25519.Signing.PublicKey {
-                return key.isValidSignature(signature, for: data)
-            }
-        }
+//        if #available(iOS 13.2, *) {
+//            if let key = key as? Curve25519.Signing.PublicKey {
+//                return key.isValidSignature(signature, for: data)
+//            }
+//        }
         return Curve25519PublicKey.verify(signature: signature as! Data, for: data as! Data, publicKey: key as! Data)
     }
     
