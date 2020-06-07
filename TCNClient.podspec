@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name        = "TCNClient"
-  s.version     = "1.0.1"
+  s.version     = "1.0.2"
   s.summary     = "The iOS client library for the TCN protocol."
   s.homepage    = "https://github.com/seriyvolk83/tcn-client-ios"
   s.license          = { :type => 'Apache', :file => 'LICENSE' }
@@ -11,12 +11,7 @@ Pod::Spec.new do |s|
   s.ios.deployment_target = "10.0"
   s.source   = { :git => "https://github.com/seriyvolk83/tcn-client-ios.git", :tag => s.version }
   s.source_files = 'Sources/TCNClient/**/*'
-
-  s.default_subspec = "Core"
-
-  s.subspec 'Core' do |cs|
-    cs.source_files = "Source/*.swift"
-  end
+  s.dependency 'CCurve25519'
 
 end
 
