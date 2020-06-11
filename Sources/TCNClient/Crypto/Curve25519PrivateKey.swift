@@ -43,6 +43,8 @@ public struct Curve25519PrivateKey {
     /// - Returns: The associated public key
     public var publicKey: Curve25519PublicKey!
     
+    public var privateKey: Data!
+    
     /// Generates a Curve25519 Signing Key.
     public init() {
 //        if #available(iOS 13.2, *) {
@@ -71,7 +73,9 @@ public struct Curve25519PrivateKey {
 //                return
 //            }
 //        }
-        publicKey = try Curve25519PublicKey(rawRepresentation: Curve25519PrivateKey.generatePublicKey(privateKey: key as! Data))
+        let (priv, pub) = try Curve25519PrivateKey.generatePublicKey(bytes: key as! Data)
+        publicKey = try Curve25519PublicKey(rawRepresentation: pub)
+        privateKey = priv
     }
     
     /// A data representation of the private key
@@ -95,7 +99,7 @@ public struct Curve25519PrivateKey {
 //                return try key.signature(for: data)
 //            }
 //        }
-        return try Curve25519PrivateKey.signature(for: data as! Data, privateKey: key as! Data, randomData: Curve25519PrivateKey.generateRandomData(count: Curve25519KeyLength.random)!)
+        return try Curve25519PrivateKey.signature(for: data as! Data, privateKey: privateKey, randomData: Curve25519PrivateKey.generateRandomData(count: Curve25519KeyLength.random)!)
     }
     
     /// Generate random private key
@@ -113,19 +117,19 @@ public struct Curve25519PrivateKey {
         }
     }
     
-    public static func generatePublicKey(privateKey: Data, basepoint: Data = Curve25519KeyLength.basepoint) throws -> Data {
-        var privateKey: Data = privateKey
+    public static func generatePublicKey(bytes: Data, basepoint: Data = Curve25519KeyLength.basepoint) throws -> (Data, Data) {
+        var privateKey: Data = Data(count: Curve25519KeyLength.key)
         guard privateKey.count == Curve25519KeyLength.key else { throw "Incorrect private key length: \(privateKey.count)" }
         guard basepoint.count == Curve25519KeyLength.key else { throw "Incorrect basepoint length: \(privateKey.count)" }
         
-        var data = Data(count: Curve25519KeyLength.key)
-        let result: Int32 = data.withUnsafeMutableBytes { (keyPtr: UnsafeMutablePointer<UInt8>) in
+        var pubKey = Data(count: Curve25519KeyLength.key)
+        let result: Int32 = pubKey.withUnsafeMutableBytes { (pubKeyPtr: UnsafeMutablePointer<UInt8>) in
             privateKey.withUnsafeMutableBytes { (privPtr: UnsafeMutablePointer<UInt8>) in
                 privPtr[0] &= 248 // clear lowest bit
-                privPtr[31] &= 127 // clear highest bit
+                privPtr[31] &= 63 // clear highest bit
                 privPtr[31] |= 64 // set second highest bit
                 return basepoint.withUnsafeBytes { basepointPtr in
-                    curve25519_donna(keyPtr, privPtr, basepointPtr)
+                    curve25519_donna(pubKeyPtr, privPtr, basepointPtr)
                 }
             }
         }
@@ -146,7 +150,7 @@ public struct Curve25519PrivateKey {
         guard result == 0 else {
             throw "Incorrect result \(result)"
         }
-        return data
+        return (privateKey, pubKey)
     }
     
     public static func signature(for message: Data, privateKey: Data, randomData: Data) throws -> Data {

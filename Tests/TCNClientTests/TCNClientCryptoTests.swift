@@ -108,7 +108,8 @@ final class TCNClientCryptoTests: XCTestCase {
             XCTAssertEqual(signedReport, newSignedReport)
             
             // Valid reports should verify correctly
-            _ = try signedReport.verify()
+            let res = try signedReport.verify()
+            XCTAssertTrue(res)
         }
         catch {
             XCTFail(error.localizedDescription)
