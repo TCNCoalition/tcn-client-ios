@@ -11,6 +11,10 @@ public enum MemoType: UInt8 {
     case CoEpiV1 = 0
     /// The CovidWatch test data format, version 1 (TBD).
     case CovidWatchV1 = 1
+    
+    /// The HutchTrace data format
+    case HutchTraceV1 = 3
+    
     /// Reserved for future use.
     case Reserved = 0xFF
 }
