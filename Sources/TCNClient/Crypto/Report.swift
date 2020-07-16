@@ -14,7 +14,7 @@ public enum MemoType: UInt8 {
     
     /// Just a place holder
     case CovidPlaceHolder = 2
-    
+
     /// The HutchTrace data format
     case HutchTraceV1 = 3
     
