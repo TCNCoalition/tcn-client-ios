@@ -8,14 +8,14 @@ import os.log
 extension TCNBluetoothServiceImpl {
     
     func didFindTCN(_ tcn: Data, estimatedDistance: Double? = nil) {
-        if #available(OSX 10.12, iOS 10.0, tvOS 10.0, watchOS 3.0, *) {
-            os_log(
-                "Did find TCN=%@ at estimated distance=%.2f",
-                log: .bluetooth,
-                tcn.base64EncodedString(),
-                estimatedDistance ?? -1.0
-            )
-        }
+//        if #available(OSX 10.12, iOS 10.0, tvOS 10.0, watchOS 3.0, *) {
+//            os_log(
+//                "Did find TCN=%@ at estimated distance=%.2f",
+//                log: .bluetooth,
+//                tcn.base64EncodedString(),
+//                estimatedDistance ?? -1.0
+//            )
+//        }
         self.service?.tcnFinder(tcn, estimatedDistance)
     }
     
