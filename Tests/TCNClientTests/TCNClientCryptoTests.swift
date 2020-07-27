@@ -83,7 +83,7 @@ final class TCNClientCryptoTests: XCTestCase {
     
     func testBasicReadWriteRoundTrip() {
         do {
-            let reportAuthorizationKey = ReportAuthorizationKey(reportAuthorizationPrivateKey: .init())
+            let reportAuthorizationKey = ReportAuthorizationKey()
             let reportAuthorizationKeySerialization = reportAuthorizationKey.serializedData()
             let newReportAuthorizationKey = try ReportAuthorizationKey(serializedData: reportAuthorizationKeySerialization)
             XCTAssertEqual(reportAuthorizationKey, newReportAuthorizationKey)
@@ -110,7 +110,7 @@ final class TCNClientCryptoTests: XCTestCase {
         do {
             // Generate a report authorization key.  This key represents the capability
             // to publish a report about a collection of derived temporary contact numbers.
-            let reportAuthorizationKey = ReportAuthorizationKey(reportAuthorizationPrivateKey: .init())
+            let reportAuthorizationKey = ReportAuthorizationKey()
             
             // Use the temporary contact key ratchet mechanism to compute a list of contact
             // event numbers.
@@ -175,8 +175,8 @@ final class TCNClientCryptoTests: XCTestCase {
                 "8b454d28430d3153a500359d9a49ec88",
             ]
             
-            let rak = ReportAuthorizationKey(reportAuthorizationPrivateKey: try .init(rawRepresentation: expected_rak_bytes.hexDecodedData()))
-            XCTAssertEqual(rak.reportAuthorizationPrivateKey.rawRepresentation.hexEncodedString(), expected_rak_bytes)
+            let rak = try ReportAuthorizationKey(serializedData: expected_rak_bytes.hexDecodedData())
+            XCTAssertEqual(rak.keyPair.privateKey.hexEncodedString(), expected_rak_bytes)
             
             //            print("here")
             var tck = rak.initialTemporaryContactKey

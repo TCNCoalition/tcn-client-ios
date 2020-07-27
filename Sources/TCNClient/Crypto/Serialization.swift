@@ -95,13 +95,12 @@ extension ReportAuthorizationKey: TCNSerializable {
         guard serializedData.count == 32 else {
             throw CocoaError(.coderInvalidValue)
         }
-        self.reportAuthorizationPrivateKey = try Curve25519.Signing.PrivateKey(
-            rawRepresentation: serializedData
-        )
+
+        self.keyPair = try CryptoLib.restoreKeyPair(serializedSecret: serializedData)
     }
     
     public func serializedData() -> Data {
-        return reportAuthorizationPrivateKey.rawRepresentation
+        return keyPair.privateKey
     }
     
 }

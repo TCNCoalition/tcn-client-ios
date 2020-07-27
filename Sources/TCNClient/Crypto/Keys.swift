@@ -3,9 +3,7 @@
 //  
 
 import Foundation
-import CryptoKit
 
-extension SHA256.Digest: DataRepresentable {}
 extension UInt8: DataRepresentable {}
 extension UInt16: DataRepresentable {}
 extension MemoType: DataRepresentable {}
@@ -15,10 +13,9 @@ public let H_TCN_DOMAIN_SEPARATOR = "H_TCN".data(using: .utf8)!
 
 /// Authorizes publication of a report of potential exposure.
 public struct ReportAuthorizationKey: Equatable {
-    
-    /// Initialize a new report authorization key from a random number generator.
-    public var reportAuthorizationPrivateKey = Curve25519.Signing.PrivateKey()
-    
+
+    let keyPair: AsymmetricKeyPair
+
     /// Compute the initial temporary contact key derived from this report authorization key.
     ///
     /// Note: this returns `tck_1`, the first temporary contact key that can be used to generate tcks.
@@ -30,23 +27,24 @@ public struct ReportAuthorizationKey: Equatable {
     var tck_0: TemporaryContactKey {
         return TemporaryContactKey(
             index: 0,
-            reportVerificationPublicKeyBytes: reportAuthorizationPrivateKey
-                .publicKey.rawRepresentation,
-            bytes: SHA256.hash(data: H_TCK_DOMAIN_SEPARATOR + reportAuthorizationPrivateKey.rawRepresentation).dataRepresentation
+            reportVerificationPublicKeyBytes: keyPair.publicKey,
+            bytes: CryptoLib.sha256(data: H_TCK_DOMAIN_SEPARATOR + keyPair.privateKey)
         )
     }
-    
-    public init(
-        reportAuthorizationPrivateKey: Curve25519.Signing.PrivateKey = .init()
-    ) {
-        self.reportAuthorizationPrivateKey = reportAuthorizationPrivateKey
+
+    public init() {
+        self.keyPair = CryptoLib.generateKeyPair()
+    }
+
+    public init(keyPair: AsymmetricKeyPair) {
+        self.keyPair = keyPair
     }
     
     public static func == (
         lhs: ReportAuthorizationKey,
         rhs: ReportAuthorizationKey
     ) -> Bool {
-        return lhs.reportAuthorizationPrivateKey.rawRepresentation == rhs.reportAuthorizationPrivateKey.rawRepresentation
+        return lhs.keyPair.privateKey == rhs.keyPair.privateKey
     }
     
 }
@@ -78,9 +76,9 @@ public struct TemporaryContactKey: Equatable {
     /// Compute the temporary contact number derived from this key.
     public var temporaryContactNumber: TemporaryContactNumber {
         return TemporaryContactNumber(
-            bytes: SHA256.hash(
+            bytes: CryptoLib.sha256(
                 data: H_TCN_DOMAIN_SEPARATOR + index.dataRepresentation + bytes
-            ).dataRepresentation[0..<16]
+            )[0..<16]
         )
     }
     
@@ -101,15 +99,15 @@ public struct TemporaryContactKey: Equatable {
             return nil
         }
         
-        let nextBytes = SHA256.hash(
+        let nextBytes = CryptoLib.sha256(
             data: H_TCK_DOMAIN_SEPARATOR + reportVerificationPublicKeyBytes + bytes
-        ).dataRepresentation
+        )
         
         return TemporaryContactKey(
             index: index + 1,
             reportVerificationPublicKeyBytes: reportVerificationPublicKeyBytes,
             bytes: nextBytes
         )
-    }    
+    }
     
 }

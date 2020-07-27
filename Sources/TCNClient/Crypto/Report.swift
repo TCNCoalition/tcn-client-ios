@@ -115,8 +115,7 @@ extension ReportAuthorizationKey {
             temporaryContactKey = temporaryContactKey.ratchet()!
         }
         let report = Report(
-            reportVerificationPublicKeyBytes: reportAuthorizationPrivateKey
-                .publicKey.rawRepresentation,
+            reportVerificationPublicKeyBytes: temporaryContactKey.reportVerificationPublicKeyBytes,
             temporaryContactKeyBytes: temporaryContactKey.bytes,
             // Invariant: we have ensured j_1 > 0 above.
             startIndex: startIndex,
@@ -124,7 +123,7 @@ extension ReportAuthorizationKey {
             memoType: memoType,
             memoData: memoData
         )
-        let signatureBytes = try reportAuthorizationPrivateKey.signature(
+        let signatureBytes = try keyPair.signature(
             for: report.serializedData()
         )
         return SignedReport(report: report, signatureBytes: signatureBytes)
@@ -148,11 +147,6 @@ public struct SignedReport: Equatable {
     
     /// Verify the source integrity of the contained `report`.
     public func verify() throws -> Bool {
-        let publicKey = try Curve25519.Signing.PublicKey(
-            rawRepresentation: report.reportVerificationPublicKeyBytes
-        )
-        return publicKey.isValidSignature(
-            signatureBytes, for: try report.serializedData()
-        )
+        return try CryptoLib.isValidSignature(signatureBytes, for: try report.serializedData(), key: report.reportVerificationPublicKeyBytes)
     }
 }
