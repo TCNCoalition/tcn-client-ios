@@ -911,7 +911,7 @@ extension TCNBluetoothServiceImpl: CBPeripheralDelegate {
                     peripheral.identifier.description,
                     peripheral.name ?? "",
                     characteristic.description,
-                    characteristic.service.description,
+                    characteristic.service?.description ?? "",
                     error as CVarArg
                 )
             }
@@ -925,7 +925,7 @@ extension TCNBluetoothServiceImpl: CBPeripheralDelegate {
                     peripheral.name ?? "",
                     characteristic.value?.count ?? 0,
                     characteristic.description,
-                    characteristic.service.description
+                    characteristic.service?.description ?? ""
                 )
             }
         }
@@ -973,7 +973,7 @@ extension TCNBluetoothServiceImpl: CBPeripheralDelegate {
                     peripheral.identifier.description,
                     peripheral.name ?? "",
                     characteristic.description,
-                    characteristic.service.description,
+                    characteristic.service?.description ?? "",
                     error as CVarArg
                 )
             }
@@ -986,7 +986,7 @@ extension TCNBluetoothServiceImpl: CBPeripheralDelegate {
                     peripheral.identifier.description,
                     peripheral.name ?? "",
                     characteristic.description,
-                    characteristic.service.description
+                    characteristic.service?.description ?? ""
                 )
             }
         }
